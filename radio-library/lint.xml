@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="IconLocation">
+        <ignore path="src/main/res/drawable/btn_notification_collapse.png" />
+        <ignore path="src/main/res/drawable/btn_playback_pause.png" />
+        <ignore path="src/main/res/drawable/btn_playback_play.png" />
+        <ignore path="src/main/res/drawable/default_art.png" />
+    </issue>
+</lint>
