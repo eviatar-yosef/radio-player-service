@@ -1,6 +1,7 @@
 package co.mobiwise.library.radio;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -57,7 +58,7 @@ public class StreamLinkDecoder extends AsyncTask<Void, Void, String> {
 
             in.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("StreamLinkDecoder", e.getMessage());
         }
 
 

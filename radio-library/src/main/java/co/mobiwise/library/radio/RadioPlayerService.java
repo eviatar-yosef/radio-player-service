@@ -31,49 +31,25 @@ import static co.mobiwise.library.R.layout.notification;
 @SuppressWarnings({"FieldCanBeLocal", "JavaDoc", "WeakerAccess"})
 public class RadioPlayerService extends Service implements PlayerCallback {
 
-    /**
-     * Notification action intent strings
-     */
     public static final String NOTIFICATION_INTENT_PLAY_PAUSE = "co.mobiwise.library.notification.radio.INTENT_PLAYPAUSE";
-
     public static final String NOTIFICATION_INTENT_CANCEL = "co.mobiwise.library.notification.radio.INTENT_CANCEL";
-
     public static final String NOTIFICATION_INTENT_OPEN_PLAYER = "co.mobiwise.library.notification.radio.INTENT_OPENPLAYER";
 
-    /**
-     * Notification current values
-     */
     private String singerName = "";
     private String songName = "";
     private int smallImage = R.drawable.default_art;
     private Bitmap artImage;
 
-    /**
-     * Notification ID
-     */
     private static final int NOTIFICATION_ID = 1;
-
-    /**
-     * Logging control variable
-     */
     private static boolean isLogging = false;
 
-    /**
-     * Radio buffer and decode capacity(DEFAULT VALUES)
-     */
     private final int AUDIO_BUFFER_CAPACITY_MS = 800;
     private final int AUDIO_DECODE_CAPACITY_MS = 400;
 
-    /**
-     * Stream url suffix
-     */
     private final String SUFFIX_PLS = ".pls";
     private final String SUFFIX_RAM = ".ram";
     private final String SUFFIX_WAX = ".wax";
 
-    /**
-     * State enum for Radio Player state (IDLE, PLAYING, STOPPED, INTERRUPTED)
-     */
     public enum State {
         IDLE,
         PLAYING,
@@ -81,68 +57,16 @@ public class RadioPlayerService extends Service implements PlayerCallback {
     }
 
     List<RadioListener> mListenerList;
-
-    /**
-     * Radio State
-     */
     private State mRadioState;
-
-    /**
-     * Current radio URL
-     */
     private String mRadioUrl;
-
-    /**
-     * Stop action. If another mediaplayer will start.It needs
-     * to send broadcast to stop this service.
-     */
     public static final String ACTION_MEDIAPLAYER_STOP = "co.mobiwise.library.ACTION_STOP_MEDIAPLAYER";
-
-    /**
-     * AAC Radio Player
-     */
     private MultiPlayer mRadioPlayer;
-
-    /**
-     * Will be controlled on incoming calls and stop and start player.
-     */
     private TelephonyManager mTelephonyManager;
-
-    /**
-     * While current radio playing, if you give another play command with different
-     * source, you need to stop it first. This value is responsible for control
-     * after radio stopped.
-     */
     private boolean isSwitching;
-
-    /**
-     * If closed from notification, it will be checked
-     * on Stop method and notification will not be created
-     */
     private boolean isClosedFromNotification = false;
-
-    /**
-     * Incoming calls interrupt radio if it is playing.
-     * Check if this is true or not after hang up;
-     */
     private boolean isInterrupted;
-
-    /**
-     * If play method is called repeatedly, AAC Decoder will be failed.
-     * play and stop methods will be turned mLock = true when they called,
-     *
-     * @onRadioStarted and @onRadioStopped methods will be release lock.
-     */
     private boolean mLock;
-
-    /**
-     * Notification manager
-     */
     private NotificationManager mNotificationManager;
-
-    /**
-     * Binder
-     */
     public final IBinder mLocalBinder = new LocalBinder();
 
     @Override
@@ -150,9 +74,6 @@ public class RadioPlayerService extends Service implements PlayerCallback {
         return mLocalBinder;
     }
 
-    /**
-     * Binder
-     */
     public class LocalBinder extends Binder {
         public RadioPlayerService getService() {
             return RadioPlayerService.this;
@@ -203,19 +124,23 @@ public class RadioPlayerService extends Service implements PlayerCallback {
     public void onCreate() {
         super.onCreate();
 
-        mListenerList = new ArrayList<>();
+        try {
+            mListenerList = new ArrayList<>();
 
-        mRadioState = State.IDLE;
-        isSwitching = false;
-        isInterrupted = false;
-        mLock = false;
-        getPlayer();
+            mRadioState = State.IDLE;
+            isSwitching = false;
+            isInterrupted = false;
+            mLock = false;
+            getPlayer();
 
-        mTelephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            mTelephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+            mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        if (mTelephonyManager != null)
-            mTelephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+            if (mTelephonyManager != null)
+                mTelephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        } catch (Exception ex) {
+            Log.e("onCreate", ex.getMessage());
+        }
     }
 
     /**
@@ -225,33 +150,41 @@ public class RadioPlayerService extends Service implements PlayerCallback {
      */
     public void play(String mRadioUrl) {
 
-        sendBroadcast(new Intent(ACTION_MEDIAPLAYER_STOP));
+        try {
+            sendBroadcast(new Intent(ACTION_MEDIAPLAYER_STOP));
 
-        notifyRadioLoading();
+            notifyRadioLoading();
 
-        if (checkSuffix(mRadioUrl))
-            decodeStremLink(mRadioUrl);
-        else {
-            this.mRadioUrl = mRadioUrl;
-            isSwitching = false;
+            if (checkSuffix(mRadioUrl))
+                decodeStremLink(mRadioUrl);
+            else {
+                this.mRadioUrl = mRadioUrl;
+                isSwitching = false;
 
-            if (isPlaying()) {
-                log("Switching Radio");
-                isSwitching = true;
-                stop();
-            } else if (!mLock) {
-                log("Play requested.");
-                mLock = true;
-                getPlayer().playAsync(mRadioUrl);
+                if (isPlaying()) {
+                    log("Switching Radio");
+                    isSwitching = true;
+                    stop();
+                } else if (!mLock) {
+                    log("Play requested.");
+                    mLock = true;
+                    getPlayer().playAsync(mRadioUrl);
+                }
             }
+        } catch (Exception ex) {
+            Log.e("play", ex.getMessage());
         }
     }
 
     public void stop() {
-        if (!mLock && mRadioState != State.STOPPED) {
-            log("Stop requested.");
-            mLock = true;
-            getPlayer().stop();
+        try {
+            if (!mLock && mRadioState != State.STOPPED) {
+                log("Stop requested.");
+                mLock = true;
+                getPlayer().stop();
+            }
+        } catch (Exception ex) {
+            Log.e("stop", ex.getMessage());
         }
     }
 
@@ -273,14 +206,14 @@ public class RadioPlayerService extends Service implements PlayerCallback {
         return State.PLAYING == mRadioState;
     }
 
-    public void resume(){
-        if(mRadioUrl != null)
+    public void resume() {
+        if (mRadioUrl != null)
             play(mRadioUrl);
     }
 
-    public void stopFromNotification(){
+    public void stopFromNotification() {
         isClosedFromNotification = true;
-        if(mNotificationManager != null) mNotificationManager.cancelAll();
+        if (mNotificationManager != null) mNotificationManager.cancelAll();
         stop();
     }
 
@@ -301,8 +234,7 @@ public class RadioPlayerService extends Service implements PlayerCallback {
          */
         if (!isClosedFromNotification) {
 //            buildNotification();
-        }
-        else {
+        } else {
             isClosedFromNotification = false;
         }
 
@@ -318,11 +250,17 @@ public class RadioPlayerService extends Service implements PlayerCallback {
 
     @Override
     public void playerException(Throwable throwable) {
-        mLock = false;
-        mRadioPlayer = null;
-        getPlayer();
-        notifyErrorOccured();
-        log("ERROR OCCURED.");
+        try {
+            mLock = false;
+            mRadioPlayer = null;
+            getPlayer();
+            notifyErrorOccured();
+            log("ERROR OCCURED.");
+        }
+        catch (Exception ex)
+        {
+            Log.e("playerException", ex.getMessage());
+        }
     }
 
     @Override
@@ -365,7 +303,7 @@ public class RadioPlayerService extends Service implements PlayerCallback {
         }
     }
 
-    private void notifyErrorOccured(){
+    private void notifyErrorOccured() {
         for (RadioListener mRadioListener : mListenerList) {
             mRadioListener.onError();
         }
