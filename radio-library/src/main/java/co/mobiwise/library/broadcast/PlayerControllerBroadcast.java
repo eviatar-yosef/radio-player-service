@@ -51,7 +51,7 @@ public class PlayerControllerBroadcast extends BroadcastReceiver{
                 MediaManager.getService().stopFromNotification();
             }
         } catch (Exception ex) {
-            Log.e("PlayerControllerBroadcast", ex.getMessage());
+            Log.e("ControllerBroadcast", ex.getMessage());
         }
     }
 }
